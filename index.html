@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Kompass — Finanzplanung</title>
+
+<!-- PWA: Installierbarkeit -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0A0E14" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kompass" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
+
+<!-- React, Recharts (exakt in der von Recharts dokumentierten Reihenfolge), Babel (JSX-Kompilierung im Browser) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/react-is@18/umd/react-is.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+/* Eigenständiges Utility-CSS als Ersatz für Tailwind CDN.
+   Deckt exakt die in der App verwendeten Klassen ab - keine externe
+   Abhängigkeit, kein Laufzeit-Compiler, funktioniert garantiert offline. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Reset-nahe Basics */
+.hidden { display: none; }
+.block { display: block; }
+.flex { display: flex; }
+.grid { display: grid; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.top-0 { top: 0; }
+.z-10 { z-index: 10; }
+.z-40 { z-index: 40; }
+.z-50 { z-index: 50; }
+
+/* Flex/Grid */
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-shrink-0 { flex-shrink: 0; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.gap-1 { gap: 4px; }
+.gap-1\.5 { gap: 6px; }
+.gap-2 { gap: 8px; }
+.gap-2\.5 { gap: 10px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+
+.space-y-1 > * + * { margin-top: 4px; }
+.space-y-2 > * + * { margin-top: 8px; }
+.space-y-2\.5 > * + * { margin-top: 10px; }
+.space-y-5 > * + * { margin-top: 20px; }
+.space-y-6 > * + * { margin-top: 24px; }
+
+/* Spacing */
+.p-0 { padding: 0; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+.p-3\.5 { padding: 14px; }
+.px-2 { padding-left: 8px; padding-right: 8px; }
+.px-2\.5 { padding-left: 10px; padding-right: 10px; }
+.px-3 { padding-left: 12px; padding-right: 12px; }
+.py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
+.py-2\.5 { padding-top: 10px; padding-bottom: 10px; }
+.py-4 { padding-top: 16px; padding-bottom: 16px; }
+.pb-2 { padding-bottom: 8px; }
+.pt-4 { padding-top: 16px; }
+.mb-1 { margin-bottom: 4px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-5 { margin-bottom: 20px; }
+.mt-0\.5 { margin-top: 2px; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mt-5 { margin-top: 20px; }
+.my-1 { margin-top: 4px; margin-bottom: 4px; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.-ml-2 { margin-left: -8px; }
+.-mr-2 { margin-right: -8px; }
+.-mt-0\.5 { margin-top: -2px; }
+.-mx-2\.5 { margin-left: -10px; margin-right: -10px; }
+
+/* Größen */
+.w-full { width: 100%; }
+.w-1\.5 { width: 6px; }
+.w-7 { width: 28px; }
+.h-1\.5 { height: 6px; }
+.h-7 { height: 28px; }
+.h-52 { height: 208px; }
+.h-px { height: 1px; }
+.min-h-screen { min-height: 100vh; min-height: 100dvh; }
+.min-w-0 { min-width: 0; }
+.max-w-6xl { max-width: 1152px; }
+
+/* Typografie */
+.text-left { text-align: left; }
+.text-lg { font-size: 18px; line-height: 26px; }
+.text-sm { font-size: 14px; line-height: 20px; }
+.text-xs { font-size: 12px; line-height: 16px; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.leading-none { line-height: 1; }
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-wide { letter-spacing: 0.025em; }
+.uppercase { text-transform: uppercase; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tabular-nums { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
+
+.text-\[9px\] { font-size: 9px; }
+.text-\[10px\] { font-size: 10px; }
+.text-\[11px\] { font-size: 11px; }
+.tracking-\[0\.1em\] { letter-spacing: 0.1em; }
+.tracking-\[0\.14em\] { letter-spacing: 0.14em; }
+
+/* Farben (Text) */
+.text-slate-100 { color: #F1F5F9; }
+.text-slate-200 { color: #E2E8F0; }
+.text-slate-300 { color: #CBD5E1; }
+.text-slate-400 { color: #94A3B8; }
+.text-slate-500 { color: #64748B; }
+.text-slate-600 { color: #475569; }
+.text-emerald-400 { color: #34D399; }
+.text-emerald-500 { color: #10B981; }
+.text-emerald-500\/70 { color: rgba(16,185,129,0.7); }
+.text-rose-400 { color: #FB7185; }
+.hover\:text-slate-100:hover { color: #F1F5F9; }
+.hover\:opacity-70:hover { opacity: 0.7; }
+
+/* Farben (Hintergrund / Rahmen) */
+.border { border-width: 1px; border-style: solid; }
+.border-t { border-top-width: 1px; border-top-style: solid; }
+.border-dashed { border-style: dashed; }
+.border-white\/5 { border-color: rgba(255,255,255,0.05); }
+.border-white\/10 { border-color: rgba(255,255,255,0.1); }
+.bg-white\/5 { background-color: rgba(255,255,255,0.05); }
+.hover\:bg-white\/5:hover { background-color: rgba(255,255,255,0.05); }
+.hover\:bg-white\/10:hover { background-color: rgba(255,255,255,0.1); }
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-from), var(--tw-to)); }
+.from-emerald-400 { --tw-from: #34D399; }
+.to-teal-600 { --tw-to: #0D9488; }
+
+/* Radius */
+.rounded-lg { border-radius: 10px; }
+.rounded-full { border-radius: 9999px; }
+
+/* Effekte */
+.transition-colors { transition: background-color 150ms, color 150ms, border-color 150ms; }
+.transition-opacity { transition: opacity 150ms; }
+.backdrop-blur-md { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.overflow-x-auto { overflow-x: auto; }
+
+@keyframes cw-spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: cw-spin 1s linear infinite; }
+
+/* Responsive (Breakpoint sm = 640px, lg = 1024px) */
+@media (min-width: 640px) {
+  .sm\:block { display: block; }
+  .sm\:inline { display: inline; }
+  .sm\:items-center { align-items: center; }
+  .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sm\:gap-1\.5 { gap: 6px; }
+  .sm\:gap-3 { gap: 12px; }
+  .sm\:h-64 { height: 256px; }
+  .sm\:h-8 { height: 32px; }
+  .sm\:w-8 { width: 32px; }
+  .sm\:mr-0 { margin-right: 0; }
+  .sm\:p-4 { padding: 16px; }
+  .sm\:p-5 { padding: 20px; }
+  .sm\:px-3 { padding-left: 12px; padding-right: 12px; }
+  .sm\:px-6 { padding-left: 24px; padding-right: 24px; }
+  .sm\:py-3\.5 { padding-top: 14px; padding-bottom: 14px; }
+  .sm\:py-6 { padding-top: 24px; padding-bottom: 24px; }
+  .sm\:text-xs { font-size: 12px; line-height: 16px; }
+  .sm\:text-\[11px\] { font-size: 11px; }
+  .sm\:tracking-\[0\.14em\] { letter-spacing: 0.14em; }
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+</style>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #0A0E14; overscroll-behavior-y: none; }
+  * { -webkit-tap-highlight-color: transparent; }
+  #root { min-height: 100vh; min-height: 100dvh; }
+  #boot-error {
+    display: none; position: fixed; inset: 0; background: #0A0E14; color: #F1F5F9;
+    font-family: -apple-system, system-ui, sans-serif; padding: 24px; box-sizing: border-box;
+    z-index: 9999; overflow-y: auto;
+  }
+  #boot-error h1 { font-size: 16px; color: #FB7185; margin-bottom: 12px; }
+  #boot-error p { font-size: 13px; color: #94A3B8; line-height: 1.6; margin-bottom: 8px; }
+  #boot-error code {
+    display: block; background: #161B22; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 10px; font-size: 11px; color: #FBBF24; margin-top: 12px;
+    white-space: pre-wrap; word-break: break-all;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="boot-error">
+  <h1>Die App konnte nicht geladen werden</h1>
+  <p>Vermutlich hat eine benötigte Ressource nicht rechtzeitig geladen (z. B. wegen einer langsamen oder unterbrochenen Internetverbindung). Bitte die Seite neu laden.</p>
+  <p>Falls das Problem bestehen bleibt, hier die technische Meldung zum Weitergeben:</p>
+  <code id="boot-error-detail"></code>
+</div>
+
+<script>
+  // Zeigt eine sichtbare Fehlermeldung statt eines stillen schwarzen Bildschirms,
+  // falls beim Laden/Ausführen etwas schiefgeht.
+  window.addEventListener('error', function (e) {
+    var box = document.getElementById('boot-error');
+    var detail = document.getElementById('boot-error-detail');
+    if (box && detail && box.style.display !== 'block') {
+      detail.textContent = (e.message || 'Unbekannter Fehler') + '\n' + (e.filename ? e.filename + ':' + e.lineno : '');
+      box.style.display = 'block';
+    }
+  });
+
+  // Nach 8 Sekunden prüfen, ob die App tatsächlich etwas gerendert hat.
+  // Falls #root noch leer ist, war vermutlich eine CDN-Ressource nicht erreichbar.
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var root = document.getElementById('root');
+      var box = document.getElementById('boot-error');
+      if (root && root.children.length === 0 && box && box.style.display !== 'block') {
+        document.getElementById('boot-error-detail').textContent =
+          'Die App-Oberfläche wurde nach dem Laden nicht erzeugt (root ist leer). ' +
+          'Mögliche Ursache: eine externe Ressource (React, Recharts, Tailwind oder Babel) ' +
+          'wurde vom Browser blockiert oder kam nicht rechtzeitig an.';
+        box.style.display = 'block';
+      }
+    }, 8000);
+  });
+</script>
+
+<script>
+  // Kompatibilitätsbrücke: "recharts" als globaler Name für app.jsx.
+  // Nur setzen, wenn Recharts tatsächlich geladen ist.
+  if (typeof Recharts !== 'undefined') {
+    window.__RECHARTS__ = Recharts;
+  } else {
+    console.error('Recharts wurde nicht geladen.');
+  }
+</script>
+
+<script type="text/babel" data-presets="react">
+if (typeof React === "undefined" || typeof window.__RECHARTS__ === "undefined") {
+  throw new Error("Benötigte externe Bibliothek (React oder Recharts) wurde nicht geladen. Bitte Internetverbindung prüfen und Seite neu laden.");
+}
+
+const { useState, useEffect, useMemo, useCallback } = React;
+const {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine
+} = window.__RECHARTS__;
+
+/* =========================================================================
+   ICONS (eigene, abhängigkeitsfreie Inline-SVGs im Lucide-Stil)
+   ========================================================================= */
+
+function makeIcon(paths, viewBox = "0 0 24 24") {
+  return function Icon({ size = 16, className = "", style = {}, strokeWidth = 2 }) {
+    return (
+      <svg
+        width={size} height={size} viewBox={viewBox} fill="none"
+        stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        className={className} style={{ display: "block", flexShrink: 0, ...style }}
+      >
+        {paths}
+      </svg>
+    );
+  };
+}
+
+const Wallet = makeIcon(<>
+  <path d="M21 7H5a2 2 0 0 1 0-4h11v4"/><path d="M21 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7"/><path d="M17 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/>
+</>);
+const TrendingUp = makeIcon(<><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></>);
+const TrendingDown = makeIcon(<><polyline points="3 7 9 13 13 9 21 17"/><polyline points="15 17 21 17 21 11"/></>);
+const Plus = makeIcon(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>);
+const CalendarIcon = makeIcon(<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>);
+const PiggyBank = makeIcon(<>
+  <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 1 3 2 3.5V19a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1h3v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2c1-.5 1.7-1.3 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1c0-1-.5-2-1-2.5"/>
+  <circle cx="16" cy="10.5" r="0.5" fill="currentColor"/>
+</>);
+const ChevronLeft = makeIcon(<polyline points="15 18 9 12 15 6"/>);
+const ChevronRight = makeIcon(<polyline points="9 18 15 12 9 6"/>);
+const X = makeIcon(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>);
+const Repeat = makeIcon(<><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></>);
+const Trash2 = makeIcon(<><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>);
+const Check = makeIcon(<polyline points="20 6 9 17 4 12"/>);
+const ArrowUpRight = makeIcon(<><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></>);
+const ArrowDownRight = makeIcon(<><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></>);
+const LayoutDashboard = makeIcon(<><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>);
+const ListChecks = makeIcon(<><polyline points="3 7 5 9 9 5"/><line x1="12" y1="7" x2="21" y2="7"/><polyline points="3 15 5 17 9 13"/><line x1="12" y1="17" x2="21" y2="17"/></>);
+const Loader2 = makeIcon(<path d="M21 12a9 9 0 1 1-6.219-8.56"/>);
+const Settings = makeIcon(<>
+  <circle cx="12" cy="12" r="3"/>
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+</>);
+const Download = makeIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>);
+const Upload = makeIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>);
+
+/* =========================================================================
+   KONSTANTEN & HILFSFUNKTIONEN
+   ========================================================================= */
+
+const MONTH_NAMES = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const MONTH_SHORT = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+const INCOME_CATEGORIES = ["Gehalt","Nebenjob","Bonus","Kapitalerträge","Sonstiges"];
+const FIXED_CATEGORIES = ["Miete","Versicherungen","Internet","Handy","Abonnements","Kredite","Strom/Gas","Sonstige Fixkosten"];
+const VARIABLE_CATEGORIES = ["Lebensmittel","Tanken/Mobilität","Freizeit","Shopping","Restaurants","Reisen","Gesundheit","Sonstiges"];
+
+const CATEGORY_COLORS = {
+  "Miete": "#5EEAD4", "Versicherungen": "#67E8F9", "Internet": "#7DD3FC", "Handy": "#93C5FD",
+  "Abonnements": "#A5B4FC", "Kredite": "#C4B5FD", "Strom/Gas": "#F0ABFC", "Sonstige Fixkosten": "#94A3B8",
+  "Lebensmittel": "#FBBF24", "Tanken/Mobilität": "#FB923C", "Freizeit": "#F87171", "Shopping": "#FB7185",
+  "Restaurants": "#FCA5A5", "Reisen": "#FDBA74", "Gesundheit": "#FDE68A", "Sonstiges": "#CBD5E1",
+};
+
+const fmt = (n) => {
+  const v = Math.round((n + Number.EPSILON) * 100) / 100;
+  return v.toLocaleString("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+const fmtCompact = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1000) return (n/1000).toLocaleString("de-DE",{maximumFractionDigits:1}) + "k €";
+  return Math.round(n) + " €";
+};
+const fmtPct = (n) => (Math.round(n*10)/10).toLocaleString("de-DE") + " %";
+
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+
+const ymKey = (year, month) => `${year}-${String(month+1).padStart(2,"0")}`; // month is 0-indexed
+const keyToLabel = (key) => {
+  const [y,m] = key.split("-").map(Number);
+  return `${MONTH_NAMES[m-1]} ${y}`;
+};
+const keyToShortLabel = (key) => {
+  const [y,m] = key.split("-").map(Number);
+  return `${MONTH_SHORT[m-1]} ${String(y).slice(2)}`;
+};
+const addMonths = (year, month, n) => {
+  const total = year*12 + month + n;
+  return { year: Math.floor(total/12), month: ((total%12)+12)%12 };
+};
+const keyDiffMonths = (fromKey, toKey) => {
+  const [fy,fm] = fromKey.split("-").map(Number);
+  const [ty,tm] = toKey.split("-").map(Number);
+  return (ty*12+tm) - (fy*12+fm);
+};
+const todayYM = () => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; };
+
+/* =========================================================================
+   WIEDERKEHRENDE BUCHUNGEN -> KONKRETE VORKOMMEN IN EINEM MONAT
+   ========================================================================= */
+
+// Prüft ob eine wiederkehrende Buchung in einem gegebenen Monat (year, month 0-idx) aktiv ist
+function occursInMonth(recurring, year, month) {
+  const targetKey = ymKey(year, month);
+  const [sy, sm] = recurring.startDate.split("-").map(Number); // startDate: "YYYY-MM-DD" or "YYYY-MM"
+  const startYear = sy, startMonth = sm - 1;
+  const diff = keyDiffMonths(ymKey(startYear, startMonth), targetKey);
+  if (diff < 0) return false;
+  if (recurring.endDate) {
+    const [ey, em] = recurring.endDate.split("-").map(Number);
+    const endDiff = keyDiffMonths(targetKey, ymKey(ey, em - 1));
+    if (endDiff < 0) return false;
+  }
+  switch (recurring.interval) {
+    case "monatlich": return true;
+    case "alle 2 monate": return diff % 2 === 0;
+    case "vierteljährlich": return diff % 3 === 0;
+    case "halbjährlich": return diff % 6 === 0;
+    case "jährlich": return diff % 12 === 0;
+    case "individuell": {
+      const n = Math.max(1, recurring.customIntervalMonths || 1);
+      return diff % n === 0;
+    }
+    default: return true;
+  }
+}
+
+/* =========================================================================
+   MONATS-BUCHUNGEN GENERIEREN (wiederkehrend + einmalig)
+   ========================================================================= */
+
+function getMonthEntries(state, year, month) {
+  const key = ymKey(year, month);
+  const entries = [];
+
+  // Wiederkehrende Einnahmen & Ausgaben
+  for (const r of state.recurring) {
+    if (occursInMonth(r, year, month)) {
+      entries.push({
+        id: r.id + "_" + key,
+        sourceId: r.id,
+        name: r.name,
+        amount: r.amount,
+        type: r.type, // "income" | "fixed" | "variable"
+        category: r.category,
+        recurring: true,
+        interval: r.interval,
+        day: r.day || 1,
+        note: r.note || "",
+      });
+    }
+  }
+  // Einmalige Buchungen für diesen Monat
+  for (const o of state.oneoff) {
+    if (o.date && o.date.startsWith(key)) {
+      entries.push({
+        id: o.id,
+        sourceId: o.id,
+        name: o.name,
+        amount: o.amount,
+        type: o.type,
+        category: o.category,
+        recurring: false,
+        day: Number(o.date.split("-")[2] || 1),
+        note: o.note || "",
+      });
+    }
+  }
+  return entries.sort((a,b)=> (a.day||1)-(b.day||1));
+}
+
+function summarizeMonth(entries) {
+  const income = entries.filter(e=>e.type==="income").reduce((s,e)=>s+e.amount,0);
+  const fixed = entries.filter(e=>e.type==="fixed").reduce((s,e)=>s+e.amount,0);
+  const variable = entries.filter(e=>e.type==="variable").reduce((s,e)=>s+e.amount,0);
+  const expenses = fixed + variable;
+  const surplus = income - expenses;
+  const savingsRate = income > 0 ? (surplus/income)*100 : 0;
+  return { income, fixed, variable, expenses, surplus, savingsRate };
+}
+
+// Berechnet den prognostizierten Kontostand für eine Liste aufeinanderfolgender Monate ab startBalance
+function computeProjection(state, startBalance, startYear, startMonth, numMonths) {
+  const points = [];
+  let balance = startBalance;
+  for (let i=0;i<numMonths;i++){
+    const {year, month} = addMonths(startYear, startMonth, i);
+    const key = ymKey(year,month);
+    const entries = getMonthEntries(state, year, month);
+    const sum = summarizeMonth(entries);
+    balance += sum.surplus;
+    points.push({ key, label: keyToShortLabel(key), fullLabel: keyToLabel(key), balance, ...sum });
+  }
+  return points;
+}
+
+/* =========================================================================
+   BEISPIELDATEN
+   ========================================================================= */
+
+function seedData() {
+  const { year, month } = todayYM();
+  return {
+    currentBalance: 0,
+    balanceAsOfKey: ymKey(year, month),
+    recurring: [],
+    oneoff: [],
+    goals: [],
+  };
+}
+
+/* =========================================================================
+   STORAGE HOOK
+   ========================================================================= */
+
+const STORAGE_KEY = "kompass-finance-data-v1";
+
+function useFinanceStore() {
+  const [state, setState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        setState(JSON.parse(raw));
+      } else {
+        const seed = seedData();
+        setState(seed);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+      }
+    } catch (e) {
+      const seed = seedData();
+      setState(seed);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); } catch(_) {}
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const persist = useCallback((next) => {
+    setState(next);
+    setSaving(true);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Speichern fehlgeschlagen", e);
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const exportData = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY) || JSON.stringify(state);
+      const blob = new Blob([raw], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const dateStr = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `kompass-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return true;
+    } catch (e) {
+      console.error("Export fehlgeschlagen", e);
+      return false;
+    }
+  }, [state]);
+
+  const importData = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (typeof parsed !== "object" || parsed === null || !("recurring" in parsed) || !("oneoff" in parsed)) {
+            reject(new Error("Diese Datei sieht nicht wie eine gültige Kompass-Sicherung aus."));
+            return;
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          setState(parsed);
+          resolve(parsed);
+        } catch (err) {
+          reject(new Error("Die Datei konnte nicht gelesen werden."));
+        }
+      };
+      reader.onerror = () => reject(new Error("Die Datei konnte nicht gelesen werden."));
+      reader.readAsText(file);
+    });
+  }, []);
+
+  return { state, setState: persist, loading, saving, exportData, importData };
+}
+
+/* =========================================================================
+   KLEINE UI-BAUSTEINE
+   ========================================================================= */
+
+function KpiCard({ label, value, sub, icon: Icon, tone = "neutral" }) {
+  const toneStyles = {
+    neutral: "text-slate-100",
+    positive: "text-emerald-400",
+    negative: "text-rose-400",
+  };
+  return (
+    <div className="card p-3 sm:p-5 flex flex-col gap-1.5 sm:gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] sm:text-[11px] tracking-[0.1em] sm:tracking-[0.14em] uppercase text-slate-500 font-medium truncate">{label}</span>
+        {Icon && <Icon size={14} className="text-slate-600 flex-shrink-0 hidden sm:block" />}
+      </div>
+      <div className={`text-base sm:text-2xl font-semibold tabular-nums truncate ${toneStyles[tone]}`}>{value}</div>
+      {sub && <div className="text-xs text-slate-500">{sub}</div>}
+    </div>
+  );
+}
+
+function SectionTitle({ eyebrow, title, action }) {
+  return (
+    <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+      <div className="min-w-0">
+        {eyebrow && <div className="text-[11px] tracking-[0.14em] uppercase text-emerald-500/70 font-medium mb-1">{eyebrow}</div>}
+        <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function Modal({ open, onClose, title, children, wide }) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}
+      onClick={onClose}
+    >
+      <div
+        className={`w-full ${wide ? "sm:max-w-lg" : "sm:max-w-md"}`}
+        style={{
+          background: "#161B22",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "16px",
+          maxHeight: "88vh",
+          overflowY: "auto",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.7)",
+        }}
+        onClick={(e)=>e.stopPropagation()}
+      >
+        <div
+          className="sticky top-0 flex items-center justify-between z-10"
+          style={{ background: "#161B22", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px" }}
+        >
+          <h3 style={{ color: "#F1F5F9", fontWeight: 600, fontSize: "15px" }}>{title}</h3>
+          <button onClick={onClose} style={{ color: "#64748B" }} className="hover:opacity-70 transition-opacity">
+            <X size={18} />
+          </button>
+        </div>
+        <div style={{ padding: "20px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label style={{ display: "block", marginBottom: "14px" }}>
+      <span style={{ display: "block", fontSize: "12px", fontWeight: 500, color: "#94A3B8", marginBottom: "6px" }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  background: "#0D1117",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: "8px",
+  padding: "10px 12px",
+  fontSize: "16px",
+  color: "#F1F5F9",
+  outline: "none",
+  boxSizing: "border-box",
+};
+const inputCls = "finance-input";
+const selectCls = "finance-input";
+
+function PrimaryButton({ children, onClick, className = "", type="button", disabled }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: disabled ? "rgba(52,211,153,0.35)" : "#34D399",
+        color: "#0A0E14",
+        fontWeight: 600,
+        fontSize: "14px",
+        padding: "10px 16px",
+        borderRadius: "8px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "6px",
+      }}
+      className={className}
+    >
+      {children}
+    </button>
+  );
+}
+function GhostButton({ children, onClick, className = "", style: extraStyle }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        color: "#94A3B8",
+        fontSize: "14px",
+        padding: "8px 12px",
+        borderRadius: "8px",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "6px",
+        ...extraStyle,
+      }}
+      className={className}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* =========================================================================
+   FORMULAR: EINTRAG HINZUFÜGEN / BEARBEITEN
+   ========================================================================= */
+
+function EntryForm({ initial, onSave, onCancel, onDelete }) {
+  const [type, setType] = useState(initial?.type || "variable");
+  const [name, setName] = useState(initial?.name || "");
+  const [amount, setAmount] = useState(initial?.amount ?? "");
+  const [category, setCategory] = useState(initial?.category || VARIABLE_CATEGORIES[0]);
+  const [mode, setMode] = useState(initial?.mode || "einmalig"); // einmalig | wiederkehrend
+  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0,10));
+  const [interval, setInterval] = useState(initial?.interval || "monatlich");
+  const [customIntervalMonths, setCustomIntervalMonths] = useState(initial?.customIntervalMonths || 3);
+  const [endDate, setEndDate] = useState(initial?.endDate || "");
+  const [note, setNote] = useState(initial?.note || "");
+
+  const categoryOptions = type === "income" ? INCOME_CATEGORIES : type === "fixed" ? FIXED_CATEGORIES : VARIABLE_CATEGORIES;
+
+  useEffect(() => {
+    if (!categoryOptions.includes(category)) setCategory(categoryOptions[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
+
+  const canSave = name.trim().length > 0 && Number(amount) > 0;
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const base = {
+      name: name.trim(),
+      amount: Math.abs(Number(amount)),
+      type,
+      category,
+      note: note.trim(),
+    };
+    if (mode === "wiederkehrend") {
+      onSave({
+        kind: "recurring",
+        data: {
+          ...base,
+          interval,
+          customIntervalMonths: interval === "individuell" ? Number(customIntervalMonths) : undefined,
+          day: Number(date.split("-")[2] || 1),
+          startDate: date.slice(0,7),
+          endDate: endDate ? endDate.slice(0,7) : null,
+        },
+      });
+    } else {
+      onSave({ kind: "oneoff", data: { ...base, date } });
+    }
+  };
+
+  const toggleBtnStyle = (active) => ({
+    fontSize: "14px",
+    padding: "9px 8px",
+    borderRadius: "8px",
+    border: active ? "1px solid rgba(52,211,153,0.5)" : "1px solid rgba(255,255,255,0.1)",
+    background: active ? "rgba(52,211,153,0.15)" : "#0D1117",
+    color: active ? "#6EE7B7" : "#94A3B8",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    cursor: "pointer",
+  });
+
+  return (
+    <div>
+      <Field label="Typ">
+        <div className="grid grid-cols-3 gap-2">
+          {[["income","Einnahme"],["fixed","Fixkosten"],["variable","Variabel"]].map(([val,lbl]) => (
+            <button
+              key={val}
+              onClick={()=>setType(val)}
+              style={toggleBtnStyle(type===val)}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Name">
+        <input className="finance-input" style={inputStyle} value={name} onChange={e=>setName(e.target.value)} placeholder="z. B. Netflix" />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Betrag (€)">
+          <input className="finance-input" style={inputStyle} type="number" min="0" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0,00" />
+        </Field>
+        <Field label="Kategorie">
+          <select className="finance-input" style={inputStyle} value={category} onChange={e=>setCategory(e.target.value)}>
+            {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <Field label="Häufigkeit">
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={()=>setMode("einmalig")} style={toggleBtnStyle(mode==="einmalig")}>
+            <CalendarIcon size={14}/> Einmalig
+          </button>
+          <button onClick={()=>setMode("wiederkehrend")} style={toggleBtnStyle(mode==="wiederkehrend")}>
+            <Repeat size={14}/> Wiederkehrend
+          </button>
+        </div>
+      </Field>
+
+      <Field label={mode === "wiederkehrend" ? "Startdatum" : "Datum"}>
+        <input className="finance-input" style={inputStyle} type="date" value={date} onChange={e=>setDate(e.target.value)} />
+      </Field>
+
+      {mode === "wiederkehrend" && (
+        <>
+          <Field label="Intervall">
+            <select className="finance-input" style={inputStyle} value={interval} onChange={e=>setInterval(e.target.value)}>
+              <option value="monatlich">monatlich</option>
+              <option value="alle 2 monate">alle 2 Monate</option>
+              <option value="vierteljährlich">vierteljährlich</option>
+              <option value="halbjährlich">halbjährlich</option>
+              <option value="jährlich">jährlich</option>
+              <option value="individuell">individuelles Intervall</option>
+            </select>
+          </Field>
+          {interval === "individuell" && (
+            <Field label="Alle wie viele Monate?">
+              <input className="finance-input" style={inputStyle} type="number" min="1" value={customIntervalMonths} onChange={e=>setCustomIntervalMonths(e.target.value)} />
+            </Field>
+          )}
+          <Field label="Enddatum (optional)">
+            <input className="finance-input" style={inputStyle} type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} />
+          </Field>
+        </>
+      )}
+
+      <Field label="Notiz (optional)">
+        <input className="finance-input" style={inputStyle} value={note} onChange={e=>setNote(e.target.value)} placeholder="z. B. Ø geschätzt" />
+      </Field>
+
+      <div className="flex items-center gap-2 mt-5">
+        <PrimaryButton onClick={handleSave} disabled={!canSave} className="flex-1">
+          <Check size={16}/> Speichern
+        </PrimaryButton>
+        <GhostButton onClick={onCancel}>Abbrechen</GhostButton>
+        {onDelete && (
+          <button onClick={onDelete} style={{ color: "#FB7185", background: "transparent", border: "none", padding: "10px", borderRadius: "8px", cursor: "pointer", display:"flex", alignItems:"center" }}>
+            <Trash2 size={16}/>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
+
+function Dashboard({ state, setState, onOpenAdd }) {
+  const { year, month } = todayYM();
+  const [horizon, setHorizon] = useState(12);
+  const [selectedKey, setSelectedKey] = useState(null);
+
+  const projection = useMemo(
+    () => computeProjection(state, state.currentBalance, year, month, horizon),
+    [state, horizon]
+  );
+
+  const thisMonthEntries = getMonthEntries(state, year, month);
+  const thisMonthSum = summarizeMonth(thisMonthEntries);
+
+  const selected = selectedKey ? projection.find(p=>p.key===selectedKey) : projection[0];
+
+  const chartData = projection.map(p => ({ label: p.label, balance: Math.round(p.balance), key: p.key }));
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+        <KpiCard label="Kontostand" value={fmt(state.currentBalance)} icon={Wallet} />
+        <KpiCard label="Einnahmen (Monat)" value={fmt(thisMonthSum.income)} icon={ArrowUpRight} tone="positive" />
+        <KpiCard label="Ausgaben (Monat)" value={fmt(thisMonthSum.expenses)} icon={ArrowDownRight} tone="negative" />
+        <KpiCard label="Überschuss" value={fmt(thisMonthSum.surplus)} icon={thisMonthSum.surplus>=0?TrendingUp:TrendingDown} tone={thisMonthSum.surplus>=0?"positive":"negative"} />
+        <KpiCard label="Sparquote" value={fmtPct(thisMonthSum.savingsRate)} icon={PiggyBank} />
+      </div>
+
+      <div className="card p-3.5 sm:p-5">
+        <div className="flex items-start justify-between mb-1 flex-wrap gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] tracking-[0.14em] uppercase text-emerald-500/70 font-medium mb-1">Prognose</div>
+            <h2 className="text-lg font-semibold text-slate-100">Vermögensentwicklung</h2>
+          </div>
+          <div className="flex gap-1 flex-wrap segmented">
+            {[6,12,24,36,60].map(h => (
+              <button
+                key={h}
+                onClick={()=>setHorizon(h)}
+                className="text-[11px] sm:text-xs"
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: horizon===h ? 600 : 400,
+                  background: horizon===h ? "#34D399" : "transparent",
+                  color: horizon===h ? "#0A0E14" : "#94A3B8",
+                }}
+              >
+                {h}M
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-52 sm:h-64 mt-4 -ml-2 -mr-2 sm:mr-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} onClick={(e)=>{ if(e && e.activeLabel){ const pt = chartData.find(c=>c.label===e.activeLabel); if(pt) setSelectedKey(pt.key); }}}>
+              <defs>
+                <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34D399" stopOpacity={0.35}/>
+                  <stop offset="100%" stopColor="#34D399" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0d" vertical={false} />
+              <XAxis dataKey="label" tick={{fontSize: 11, fill:"#64748B"}} axisLine={{stroke:"#ffffff14"}} tickLine={false} interval={Math.floor(horizon/8)} />
+              <YAxis tick={{fontSize: 11, fill:"#64748B"}} axisLine={false} tickLine={false} tickFormatter={fmtCompact} width={54}/>
+              <ReferenceLine y={0} stroke="#F87171" strokeDasharray="3 3" strokeOpacity={0.4} />
+              <Tooltip
+                contentStyle={{ background:"#0D1117", border:"1px solid #ffffff1a", borderRadius:10, fontSize:12 }}
+                labelStyle={{ color:"#94A3B8", marginBottom: 4 }}
+                formatter={(v)=>[fmt(v), "Kontostand"]}
+              />
+              <Area type="monotone" dataKey="balance" stroke="#34D399" strokeWidth={2.5} fill="url(#balanceGrad)" activeDot={{r:5, fill:"#34D399"}} cursor="pointer" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {selected && (
+          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-1 truncate">{selected.fullLabel}</div>
+              <div className="text-sm font-semibold text-slate-100 truncate">{fmt(selected.balance)}</div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">Einnahmen</div>
+              <div className="text-sm font-semibold text-emerald-400 truncate">{fmt(selected.income)}</div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">Ausgaben</div>
+              <div className="text-sm font-semibold text-rose-400 truncate">{fmt(selected.expenses)}</div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">Überschuss</div>
+              <div className={`text-sm font-semibold truncate ${selected.surplus>=0?"text-emerald-400":"text-rose-400"}`}>{fmt(selected.surplus)}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card p-3.5 sm:p-5">
+        <SectionTitle title="Diesen Monat" eyebrow={keyToLabel(ymKey(year,month))} />
+        <div className="space-y-2">
+          {thisMonthEntries.slice(0,5).map(e => (
+            <div key={e.id} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: CATEGORY_COLORS[e.category] || "#94A3B8"}}/>
+                <span className="text-slate-300 truncate">{e.name}</span>
+              </div>
+              <span className={`tabular-nums font-medium flex-shrink-0 ${e.type==="income"?"text-emerald-400":"text-slate-400"}`}>
+                {e.type==="income"?"+":"−"}{fmt(e.amount)}
+              </span>
+            </div>
+          ))}
+          {thisMonthEntries.length === 0 && <div className="text-sm text-slate-600">Noch keine Buchungen.</div>}
+        </div>
+        <GhostButton onClick={onOpenAdd} className="w-full justify-center mt-4 border border-dashed border-white/10">
+          <Plus size={15}/> Ausgabe hinzufügen
+        </GhostButton>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   MONATSANSICHT
+   ========================================================================= */
+
+function MonthView({ state, setState, onEditEntry }) {
+  const { year: ty, month: tm } = todayYM();
+  const [cursor, setCursor] = useState({ year: ty, month: tm });
+  const key = ymKey(cursor.year, cursor.month);
+  const entries = getMonthEntries(state, cursor.year, cursor.month);
+  const sum = summarizeMonth(entries);
+
+  const groups = {
+    income: entries.filter(e=>e.type==="income"),
+    fixed: entries.filter(e=>e.type==="fixed"),
+    variable: entries.filter(e=>e.type==="variable"),
+  };
+
+  const nav = (dir) => setCursor(c => addMonths(c.year, c.month, dir));
+
+  const Group = ({ title, items, type }) => (
+    <div className="card p-3.5 sm:p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-slate-200">{title}</h3>
+        <span className={`text-sm font-semibold tabular-nums ${type==="income"?"text-emerald-400":"text-slate-400"}`}>
+          {type==="income"?"+":"−"}{fmt(items.reduce((s,e)=>s+e.amount,0))}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {items.map(e => (
+          <button
+            key={e.id}
+            onClick={()=>onEditEntry(e)}
+            className="w-full flex items-center justify-between text-sm py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-white/5 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: CATEGORY_COLORS[e.category] || "#94A3B8"}}/>
+              <div className="min-w-0">
+                <div className="text-slate-200 truncate">{e.name}</div>
+                <div className="text-[11px] text-slate-600 flex items-center gap-1">
+                  {e.category}
+                  {e.recurring && <><span>·</span><Repeat size={10}/></>}
+                </div>
+              </div>
+            </div>
+            <span className={`tabular-nums font-medium flex-shrink-0 ${type==="income"?"text-emerald-400":"text-slate-300"}`}>
+              {type==="income"?"+":"−"}{fmt(e.amount)}
+            </span>
+          </button>
+        ))}
+        {items.length === 0 && <div className="text-xs text-slate-600 py-2">Keine Einträge.</div>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={()=>nav(-1)} className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-slate-100 transition-colors">
+          <ChevronLeft size={20}/>
+        </button>
+        <h2 className="text-lg font-semibold text-slate-100">{keyToLabel(key)}</h2>
+        <button onClick={()=>nav(1)} className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-slate-100 transition-colors">
+          <ChevronRight size={20}/>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <KpiCard label="Einnahmen" value={fmt(sum.income)} tone="positive" />
+        <KpiCard label="Ausgaben" value={fmt(sum.expenses)} tone="negative" />
+        <KpiCard label="Überschuss" value={fmt(sum.surplus)} tone={sum.surplus>=0?"positive":"negative"} />
+        <KpiCard label="Sparquote" value={fmtPct(sum.savingsRate)} />
+      </div>
+
+      <Group title="Einnahmen" items={groups.income} type="income" />
+      <Group title="Fixkosten" items={groups.fixed} type="fixed" />
+      <Group title="Variable Ausgaben" items={groups.variable} type="variable" />
+    </div>
+  );
+}
+
+/* =========================================================================
+   PROGNOSE
+   ========================================================================= */
+
+function ForecastView({ state }) {
+  const { year, month } = todayYM();
+  const [horizon, setHorizon] = useState(12);
+  const projection = useMemo(() => computeProjection(state, state.currentBalance, year, month, horizon), [state, horizon]);
+  const last = projection[projection.length-1];
+  const totalIncome = projection.reduce((s,p)=>s+p.income,0);
+  const totalExpenses = projection.reduce((s,p)=>s+p.expenses,0);
+  const avgSurplus = projection.reduce((s,p)=>s+p.surplus,0) / projection.length;
+
+  const chartData = projection.map(p => ({ label: p.label, balance: Math.round(p.balance) }));
+
+  const expensiveMonths = [...projection].sort((a,b)=>b.expenses-a.expenses).slice(0,3);
+
+  return (
+    <div className="space-y-6">
+      <div className="card p-3.5 sm:p-5">
+        <SectionTitle eyebrow="Simulation" title="Finanzielle Prognose" action={
+          <div className="flex gap-1 flex-wrap segmented">
+            {[3,6,12,24,36,60].map(h => (
+              <button
+                key={h}
+                onClick={()=>setHorizon(h)}
+                className="text-[11px] sm:text-xs"
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: horizon===h ? 600 : 400,
+                  background: horizon===h ? "#34D399" : "transparent",
+                  color: horizon===h ? "#0A0E14" : "#94A3B8",
+                }}
+              >
+                {h}M
+              </button>
+            ))}
+          </div>
+        }/>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
+          <KpiCard label="Startkapital" value={fmt(state.currentBalance)} />
+          <KpiCard label="Ø Überschuss/Monat" value={fmt(avgSurplus)} tone={avgSurplus>=0?"positive":"negative"} />
+          <KpiCard label={`Kontostand nach ${horizon}M`} value={fmt(last.balance)} tone={last.balance>=state.currentBalance?"positive":"negative"} />
+          <KpiCard label="Veränderung" value={fmt(last.balance-state.currentBalance)} tone={last.balance>=state.currentBalance?"positive":"negative"} />
+        </div>
+
+        <div className="h-52 sm:h-64 -ml-2 -mr-2 sm:mr-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0d" vertical={false} />
+              <XAxis dataKey="label" tick={{fontSize: 11, fill:"#64748B"}} axisLine={{stroke:"#ffffff14"}} tickLine={false} interval={Math.floor(horizon/8)} />
+              <YAxis tick={{fontSize: 11, fill:"#64748B"}} axisLine={false} tickLine={false} tickFormatter={fmtCompact} width={54} />
+              <ReferenceLine y={0} stroke="#F87171" strokeDasharray="3 3" strokeOpacity={0.4} />
+              <Tooltip contentStyle={{ background:"#0D1117", border:"1px solid #ffffff1a", borderRadius:10, fontSize:12 }} formatter={(v)=>[fmt(v),"Kontostand"]} />
+              <Line type="monotone" dataKey="balance" stroke="#34D399" strokeWidth={2.5} dot={false} activeDot={{r:5}} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="card p-3.5 sm:p-5">
+          <SectionTitle title={`Bilanz über ${horizon} Monate`} />
+          <div className="space-y-2.5 text-sm">
+            <div className="flex justify-between"><span className="text-slate-400">Gesamteinnahmen</span><span className="text-emerald-400 font-medium tabular-nums">{fmt(totalIncome)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-400">Gesamtausgaben</span><span className="text-rose-400 font-medium tabular-nums">{fmt(totalExpenses)}</span></div>
+            <div className="h-px bg-white/5 my-1"/>
+            <div className="flex justify-between"><span className="text-slate-300 font-medium">Nettoersparnis</span><span className={`font-semibold tabular-nums ${totalIncome-totalExpenses>=0?"text-emerald-400":"text-rose-400"}`}>{fmt(totalIncome-totalExpenses)}</span></div>
+          </div>
+        </div>
+        <div className="card p-3.5 sm:p-5">
+          <SectionTitle title="Teuerste Monate" />
+          <div className="space-y-2">
+            {expensiveMonths.map(m => (
+              <div key={m.key} className="flex justify-between items-center gap-2 text-sm">
+                <span className="text-slate-300 truncate min-w-0">{m.fullLabel}</span>
+                <span className="text-rose-400 font-medium tabular-nums flex-shrink-0">{fmt(m.expenses)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   HAUPT-APP
+   ========================================================================= */
+
+const TABS = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "month", label: "Monat", icon: ListChecks },
+  { id: "forecast", label: "Prognose", icon: TrendingUp },
+];
+
+function App() {
+  const { state, setState, loading, saving, exportData, importData } = useFinanceStore();
+  const [tab, setTab] = useState("dashboard");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [editingBalance, setEditingBalance] = useState(false);
+  const [balanceInput, setBalanceInput] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [importMsg, setImportMsg] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  if (loading || !state) {
+    return (
+      <div className="min-h-screen app-bg flex items-center justify-center">
+        <Loader2 className="animate-spin text-emerald-500" size={28}/>
+      </div>
+    );
+  }
+
+  const handleSaveEntry = ({ kind, data }) => {
+    let next = { ...state };
+    if (editingEntry && editingEntry.sourceId) {
+      // Bearbeiten: alten Eintrag entfernen, neuen hinzufügen
+      next.recurring = next.recurring.filter(r => r.id !== editingEntry.sourceId);
+      next.oneoff = next.oneoff.filter(o => o.id !== editingEntry.sourceId);
+    }
+    if (kind === "recurring") {
+      next.recurring = [...next.recurring, { id: editingEntry?.sourceId && editingEntry?.recurring ? editingEntry.sourceId : uid(), ...data }];
+    } else {
+      next.oneoff = [...next.oneoff, { id: editingEntry?.sourceId && !editingEntry?.recurring ? editingEntry.sourceId : uid(), ...data }];
+    }
+    setState(next);
+    setShowAdd(false);
+    setEditingEntry(null);
+  };
+
+  const handleDeleteEntry = () => {
+    if (!editingEntry) return;
+    let next = { ...state };
+    next.recurring = next.recurring.filter(r => r.id !== editingEntry.sourceId);
+    next.oneoff = next.oneoff.filter(o => o.id !== editingEntry.sourceId);
+    setState(next);
+    setShowAdd(false);
+    setEditingEntry(null);
+  };
+
+  const openEdit = (entry) => {
+    setEditingEntry(entry);
+    setShowAdd(true);
+  };
+
+  const saveBalance = () => {
+    const v = Number(balanceInput);
+    if (!isNaN(v)) setState({ ...state, currentBalance: v });
+    setEditingBalance(false);
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await importData(file);
+      setImportMsg({ ok: true, text: "Daten erfolgreich importiert." });
+    } catch (err) {
+      setImportMsg({ ok: false, text: err.message || "Import fehlgeschlagen." });
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="min-h-screen app-bg" style={{ color: "#F1F5F9", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .app-bg { background-color: #0A0E14; }
+        .app-header { background-color: rgba(10,14,20,0.92); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .card { background-color: #161B22; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; }
+        .segmented { background-color: #0D1117; border-radius: 8px; padding: 4px; border: 1px solid rgba(255,255,255,0.06); }
+        .progress-track { height: 8px; background-color: #0D1117; border-radius: 999px; overflow: hidden; }
+        .tabular-nums { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #ffffff1a; border-radius: 4px; }
+        input[type="date"]::-webkit-calendar-picker-indicator, input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+        .finance-input { color-scheme: dark; }
+        input, select, textarea { font-size: 16px; }
+        .finance-input::placeholder { color: #64748B; opacity: 1; }
+        .finance-input:focus { border-color: rgba(52,211,153,0.5) !important; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
+        select.finance-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+        select.finance-input option { background: #0D1117; color: #F1F5F9; }
+      `}</style>
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 app-header backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={15} style={{ color: "#0A0E14" }} strokeWidth={2.5}/>
+            </div>
+            <div className="min-w-0 hidden sm:block">
+              <div className="text-sm font-bold tracking-tight text-slate-100 leading-none">Kompass</div>
+              <div className="text-[10px] text-slate-600 leading-none mt-0.5">Finanzplanung</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            {saving && <Loader2 size={13} className="animate-spin text-slate-600"/>}
+            <button onClick={()=>{setBalanceInput(String(state.currentBalance)); setEditingBalance(true);}} className="text-[11px] sm:text-xs text-slate-400 hover:text-slate-100 bg-white/5 hover:bg-white/10 px-2 sm:px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 sm:gap-1.5 tabular-nums">
+              <Wallet size={12}/> {fmt(state.currentBalance)}
+            </button>
+            <PrimaryButton onClick={()=>{setEditingEntry(null); setShowAdd(true);}}>
+              <Plus size={15}/> <span className="hidden sm:inline">Ausgabe</span>
+            </PrimaryButton>
+            <button onClick={()=>{setImportMsg(null); setShowSettings(true);}} style={{ color: "#64748B", background: "transparent", border: "none", padding: "8px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center" }} aria-label="Einstellungen">
+              <Settings size={17}/>
+            </button>
+          </div>
+        </div>
+        {/* Tabs */}
+        <nav className="max-w-6xl mx-auto px-3 sm:px-6 flex gap-1 overflow-x-auto pb-2 -mt-0.5">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={()=>setTab(t.id)}
+              className={`flex items-center gap-1.5 text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors flex-shrink-0 ${tab===t.id ? "bg-emerald-500/15 text-emerald-300" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"}`}
+            >
+              <t.icon size={13}/> {t.label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {tab === "dashboard" && <Dashboard state={state} setState={setState} onOpenAdd={()=>{setEditingEntry(null); setShowAdd(true);}} />}
+        {tab === "month" && <MonthView state={state} setState={setState} onEditEntry={openEdit} />}
+        {tab === "forecast" && <ForecastView state={state} />}
+      </main>
+
+      <Modal open={showAdd} onClose={()=>{setShowAdd(false); setEditingEntry(null);}} title={editingEntry ? "Buchung bearbeiten" : "Neue Buchung"}>
+        <EntryForm
+          initial={editingEntry ? {
+            type: editingEntry.type, name: editingEntry.name, amount: editingEntry.amount, category: editingEntry.category,
+            mode: editingEntry.recurring ? "wiederkehrend" : "einmalig",
+            date: editingEntry.recurring ? undefined : (state.oneoff.find(o=>o.id===editingEntry.sourceId)?.date),
+            interval: editingEntry.recurring ? state.recurring.find(r=>r.id===editingEntry.sourceId)?.interval : undefined,
+            endDate: editingEntry.recurring ? (state.recurring.find(r=>r.id===editingEntry.sourceId)?.endDate ? state.recurring.find(r=>r.id===editingEntry.sourceId).endDate + "-01" : "") : "",
+            note: editingEntry.note,
+          } : null}
+          onSave={handleSaveEntry}
+          onCancel={()=>{setShowAdd(false); setEditingEntry(null);}}
+          onDelete={editingEntry ? handleDeleteEntry : null}
+        />
+      </Modal>
+
+      <Modal open={editingBalance} onClose={()=>setEditingBalance(false)} title="Kontostand anpassen">
+        <Field label="Aktueller Kontostand (€)">
+          <input className="finance-input" style={inputStyle} type="number" value={balanceInput} onChange={e=>setBalanceInput(e.target.value)} autoFocus />
+        </Field>
+        <PrimaryButton onClick={saveBalance} className="w-full mt-2"><Check size={16}/> Speichern</PrimaryButton>
+      </Modal>
+
+      <Modal open={showSettings} onClose={()=>setShowSettings(false)} title="Einstellungen & Daten">
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: "#F1F5F9", marginBottom: "4px" }}>Daten sichern</div>
+          <div style={{ fontSize: "12px", color: "#64748B", marginBottom: "10px", lineHeight: 1.5 }}>
+            Lade alle deine Buchungen und Einstellungen als Datei herunter. So kannst du sie auf ein neues Handy übertragen.
+          </div>
+          <PrimaryButton onClick={exportData} className="w-full">
+            <Download size={16}/> Daten exportieren
+          </PrimaryButton>
+        </div>
+
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "16px 0" }}/>
+
+        <div>
+          <div style={{ fontSize: "13px", fontWeight: 600, color: "#F1F5F9", marginBottom: "4px" }}>Daten wiederherstellen</div>
+          <div style={{ fontSize: "12px", color: "#64748B", marginBottom: "10px", lineHeight: 1.5 }}>
+            Wähle eine zuvor exportierte Sicherungsdatei aus. Das ersetzt alle aktuellen Daten in dieser App.
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            onChange={handleFileSelected}
+            style={{ display: "none" }}
+          />
+          <GhostButton onClick={()=>fileInputRef.current?.click()} className="w-full justify-center" style={{ border: "1px dashed rgba(255,255,255,0.15)" }}>
+            <Upload size={16}/> Datei auswählen &amp; importieren
+          </GhostButton>
+          {importMsg && (
+            <div style={{
+              marginTop: "10px",
+              fontSize: "12px",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              background: importMsg.ok ? "rgba(52,211,153,0.1)" : "rgba(251,113,133,0.1)",
+              color: importMsg.ok ? "#6EE7B7" : "#FB7185",
+            }}>
+              {importMsg.text}
+            </div>
+          )}
+        </div>
+
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "16px 0" }}/>
+        <div style={{ fontSize: "11px", color: "#475569", lineHeight: 1.5 }}>
+          Deine Daten werden ausschließlich lokal auf diesem Gerät gespeichert. Für ein neues Handy: hier exportieren, die Datei übertragen (z. B. per AirDrop, E-Mail oder Cloud-Speicher), und auf dem neuen Gerät importieren.
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById("root");
+const root = ReactDOM.createRoot(rootEl);
+root.render(<App />);
+
+</script>
+
+<script>
+  // PWA installierbar machen: Service Worker registrieren.
+  // Bewusst verzögert und NACH dem ersten Rendern der App, damit ein
+  // Service-Worker-Problem niemals den initialen Start der App verhindern kann.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+          console.warn('Service Worker konnte nicht registriert werden:', err);
+        });
+      }, 3000);
+    });
+  }
+</script>
+</body>
+</html>
