@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Kompass — Finanzplanung</title>
+
+<!-- PWA: Installierbarkeit -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0A0E14" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kompass" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
+
+<!-- React, Recharts, Babel (JSX-Kompilierung im Browser), Tailwind (Utility-Klassen) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
+<script src="https://unpkg.com/react-is@18/umd/react-is.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #0A0E14; overscroll-behavior-y: none; }
+  * { -webkit-tap-highlight-color: transparent; }
+  #root { min-height: 100vh; min-height: 100dvh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  // Kompatibilitätsbrücke: "recharts" als globaler Name für app.jsx
+  window.__RECHARTS__ = Recharts;
+</script>
+
+<script type="text/babel" data-presets="react" src="app.jsx"></script>
+
+<script>
+  // PWA installierbar machen: Service Worker registrieren
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
